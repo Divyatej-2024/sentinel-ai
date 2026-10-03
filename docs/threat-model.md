@@ -12,8 +12,8 @@
 - SQL injection through filters: SQLAlchemy expression parameters; filter names are fixed in code.
 - Database exposure: Compose does not publish the PostgreSQL port; credentials are supplied by environment variables.
 - Data loss: persistent Docker volume; backups are not yet configured.
-- Unauthorized read/write: authentication is not implemented. Run only on a trusted local environment; do not expose this service.
+- Unauthorized event reads/writes: when `API_KEY` is configured, all event endpoints require a constant-time checked `X-API-Key`. The key is unset for local development; public deployments must set it.
 
 ## Assumptions and residual risks
 
-The deployment is a local demo using synthetic data. The service has no authentication, authorization, rate limiting, retention policy, encryption configuration, or audit log yet. Metadata is limited by item count but total request body size is not separately capped in this milestone. Production use is out of scope.
+The current frontend is a demo shell, not an analyst console. The service has no user accounts or roles, rate limiting, retention policy, or audit log yet. API keys are shared secrets and do not provide per-user attribution. Metadata is limited by item count but total request body size is not separately capped. Use synthetic data only; production SOC use is out of scope.

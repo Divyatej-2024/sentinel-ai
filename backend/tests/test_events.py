@@ -1,3 +1,8 @@
+from pydantic import SecretStr
+
+from app.core.config import settings
+
+
 def payload(**overrides):
     event = {
         "timestamp": "2026-10-03T12:00:00Z",
@@ -53,6 +58,23 @@ def test_missing_event(client):
     from uuid import uuid4
 
     assert client.get(f"/api/v1/events/{uuid4()}").status_code == 404
+
+
+def test_configured_api_key_protects_event_routes(client, monkeypatch):
+    monkeypatch.setattr(settings, "api_key", SecretStr("test-ingestion-key"))
+    assert client.get("/api/v1/events").status_code == 401
+    headers = {"X-API-Key": "test-ingestion-key"}
+    assert client.get("/api/v1/events", headers=headers).status_code == 200
+    assert client.post("/api/v1/events", json=payload(), headers=headers).status_code == 201
+
+
+def test_postgres_url_selects_psycopg_driver():
+    from app.core.config import Settings
+
+    assert (
+        Settings(database_url="postgresql://user:pass@host/db").database_url
+        == "postgresql+psycopg://user:pass@host/db"
+    )
 
 
 def test_time_filters_validate_order_and_timezone(client):

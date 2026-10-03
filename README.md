@@ -34,6 +34,10 @@ docker compose up --build
 
 The API is at `http://localhost:8000`, docs at `http://localhost:8000/api/docs`, and the frontend at `http://localhost:3000`. Compose waits for PostgreSQL health and applies Alembic migrations before starting the API. The example database password is for local development only; set your own values for any shared environment.
 
+## Public demo deployment
+
+For a public Render deployment, follow [docs/deploy-render.md](docs/deploy-render.md). The free Blueprint exposes the app publicly but the database expires after 30 days. Configure a paid database plan for persistent operation.
+
 ## Run the backend locally
 
 From `backend/`, create a virtual environment, install the project, and configure `DATABASE_URL` (for example `postgresql+psycopg://sentinel:sentinel@localhost:5432/sentinel`). Then:
@@ -58,6 +62,6 @@ List events with `GET /api/v1/events?limit=50&offset=0&severity=high`. Supported
 
 ## Security and limitations
 
-This milestone has no user authentication or authorization and is intended only for local development with synthetic data. Do not expose it to untrusted networks or send sensitive production telemetry. Input is schema validated, IP fields are parsed, and query filters use parameterized SQLAlchemy expressions. Secrets are supplied through environment variables rather than committed configuration.
+For public deployment, configure `API_KEY`; all event endpoints then require it in the `X-API-Key` request header. Keep the key private. The app has no user accounts or roles, audit log, or rate limiting, and is still an early demo. Use synthetic data only and do not send sensitive production telemetry. Input is schema validated, IP fields are parsed, and query filters use parameterized SQLAlchemy expressions. Secrets are supplied through environment variables rather than committed configuration.
 
 See [docs/architecture.md](docs/architecture.md), [docs/detection-engine.md](docs/detection-engine.md), [docs/risk-scoring.md](docs/risk-scoring.md), [docs/api.md](docs/api.md), and [docs/threat-model.md](docs/threat-model.md) for design notes. Future work includes alerts, deterministic detection, correlation, incidents, audit logs, authentication, and AI-assisted investigation behind analyst approval.

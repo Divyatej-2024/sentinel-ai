@@ -7,6 +7,7 @@ from pydantic.networks import IPvAnyAddress
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.dependencies import ApiKeyDep
 from app.db.database import get_session
 from app.models import SecurityEvent
 from app.schemas.event import SecurityEventCreate, SecurityEventRead
@@ -16,7 +17,9 @@ SessionDep = Annotated[Session, Depends(get_session)]
 
 
 @router.post("", response_model=SecurityEventRead, status_code=status.HTTP_201_CREATED)
-def create_event(payload: SecurityEventCreate, session: SessionDep) -> SecurityEvent:
+def create_event(
+    payload: SecurityEventCreate, session: SessionDep, _api_key: ApiKeyDep
+) -> SecurityEvent:
     values = payload.model_dump(exclude={"metadata"})
     values["source_ip"] = str(payload.source_ip) if payload.source_ip else None
     values["destination_ip"] = str(payload.destination_ip) if payload.destination_ip else None
@@ -31,6 +34,7 @@ def create_event(payload: SecurityEventCreate, session: SessionDep) -> SecurityE
 @router.get("", response_model=list[SecurityEventRead])
 def list_events(
     session: SessionDep,
+    _api_key: ApiKeyDep,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     start_time: datetime | None = None,
@@ -78,7 +82,7 @@ def list_events(
 
 
 @router.get("/{event_id}", response_model=SecurityEventRead)
-def get_event(event_id: UUID, session: SessionDep) -> SecurityEvent:
+def get_event(event_id: UUID, session: SessionDep, _api_key: ApiKeyDep) -> SecurityEvent:
     event = session.get(SecurityEvent, event_id)
     if event is None:
         raise HTTPException(status_code=404, detail="Event not found")

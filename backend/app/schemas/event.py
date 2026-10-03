@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, Any, Literal
 from uuid import UUID
@@ -13,7 +13,9 @@ class SecurityEventCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     timestamp: datetime
-    event_type: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)]
+    event_type: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)
+    ]
     source: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)]
     source_ip: IPAddress | None = None
     destination_ip: IPAddress | None = None
@@ -34,7 +36,7 @@ class SecurityEventCreate(BaseModel):
     def normalize_timestamp(cls, value: datetime) -> datetime:
         if value.tzinfo is None:
             raise ValueError("timestamp must include a timezone")
-        return value.astimezone(timezone.utc)
+        return value.astimezone(UTC)
 
 
 class SecurityEventRead(BaseModel):

@@ -3,6 +3,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic.networks import IPvAnyAddress
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -16,12 +17,11 @@ SessionDep = Annotated[Session, Depends(get_session)]
 
 @router.post("", response_model=SecurityEventRead, status_code=status.HTTP_201_CREATED)
 def create_event(payload: SecurityEventCreate, session: SessionDep) -> SecurityEvent:
-    event = SecurityEvent(
-        **payload.model_dump(exclude={"metadata"}),
-        source_ip=str(payload.source_ip) if payload.source_ip else None,
-        destination_ip=str(payload.destination_ip) if payload.destination_ip else None,
-        event_metadata=payload.metadata,
-    )
+    values = payload.model_dump(exclude={"metadata"})
+    values["source_ip"] = str(payload.source_ip) if payload.source_ip else None
+    values["destination_ip"] = str(payload.destination_ip) if payload.destination_ip else None
+    values["event_metadata"] = payload.metadata
+    event = SecurityEvent(**values)
     session.add(event)
     session.commit()
     session.refresh(event)
@@ -40,7 +40,7 @@ def list_events(
     severity: str | None = Query(default=None, pattern="^(low|medium|high|critical)$"),
     hostname: str | None = Query(default=None, max_length=255),
     username: str | None = Query(default=None, max_length=255),
-    source_ip: str | None = Query(default=None, max_length=45),
+    source_ip: IPvAnyAddress | None = None,
     status: str | None = Query(default=None, max_length=64),
 ) -> list[SecurityEvent]:
     if start_time and start_time.tzinfo is None:
@@ -62,12 +62,18 @@ def list_events(
     }
     for field, value in filters.items():
         if value is not None:
+            if field == "source_ip":
+                value = str(value)
             statement = statement.where(getattr(SecurityEvent, field) == value)
     if start_time:
         statement = statement.where(SecurityEvent.timestamp >= start_time)
     if end_time:
         statement = statement.where(SecurityEvent.timestamp <= end_time)
-    statement = statement.order_by(SecurityEvent.timestamp.desc()).offset(offset).limit(limit)
+    statement = (
+        statement.order_by(SecurityEvent.timestamp.desc(), SecurityEvent.event_id.desc())
+        .offset(offset)
+        .limit(limit)
+    )
     return list(session.scalars(statement).all())
 
 

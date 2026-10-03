@@ -1,7 +1,7 @@
 """Create normalized security event store."""
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision = "0001_security_events"
 down_revision = None
@@ -29,10 +29,26 @@ def upgrade() -> None:
         sa.Column("severity", sa.String(length=16), nullable=True),
         sa.Column("message", sa.Text(), nullable=True),
         sa.Column("metadata", sa.JSON(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.PrimaryKeyConstraint("event_id"),
     )
-    for field in ("timestamp", "event_type", "source", "source_ip", "destination_ip", "username", "hostname", "status", "severity"):
+    indexed_fields = (
+        "timestamp",
+        "event_type",
+        "source",
+        "source_ip",
+        "destination_ip",
+        "username",
+        "hostname",
+        "status",
+        "severity",
+    )
+    for field in indexed_fields:
         op.create_index(f"ix_security_events_{field}", "security_events", [field])
 
 
